@@ -634,7 +634,7 @@ static void cx24120_get_stats(struct cx24120_state *state)
 			__func__, sig);
 
 		/* cooked */
-		sig = ((sigstr_h | sigstr_l)  << 5) & 0x0000ffff;
+		sig = -100 * sig + 94324;
 
 		c->strength.stat[0].scale = FE_SCALE_RELATIVE;
 		c->strength.stat[0].uvalue = sig;
