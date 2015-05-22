@@ -625,11 +625,20 @@ fail:
 
 /* SkyStar S2 PCI DVB-S/S2 card based on Conexant cx24120/cx24118 */
 #if FE_SUPPORTED(CX24120) && FE_SUPPORTED(ISL6421)
+static int skystarS2_rev33_stream_control(struct dvb_frontend *fe, int onoff)
+{
+	struct flexcop_device *fc = fe->dvb->priv;
+
+	flexcop_external_stream_control(fc, onoff);
+	return 0;
+}
+
 static const struct cx24120_config skystar2_rev3_3_cx24120_config = {
 	.i2c_addr = 0x55,
 	.xtal_khz = 10111,
 	.initial_mpeg_config = { 0xa1, 0x76, 0x07 },
 	.request_firmware = flexcop_fe_request_firmware,
+	.stream_control = skystarS2_rev33_stream_control,
 	.i2c_wr_max = 4,
 };
 
@@ -651,6 +660,7 @@ static int skystarS2_rev33_attach(struct flexcop_device *fc,
 	}
 	info("ISL6421 successfully attached.");
 
+	fc->use_external_stream_control = 1;
 	if (fc->has_32_hw_pid_filter)
 		fc->skip_6_hw_pid_filter = 1;
 

@@ -37,6 +37,7 @@ struct cx24120_config {
 
 	int (*request_firmware)(struct dvb_frontend *fe,
 				const struct firmware **fw, char *name);
+	int (*stream_control)(struct dvb_frontend *fe, int onoff);
 
 	/* max bytes I2C provider can write at once */
 	u16 i2c_wr_max;

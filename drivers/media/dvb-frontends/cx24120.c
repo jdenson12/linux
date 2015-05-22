@@ -371,6 +371,8 @@ static void cx24120_check_cmd(struct cx24120_state *state, u8 id)
 	case CMD_DISEQC_BURST:
 		cx24120_msg_mpeg_output_global_config(state, 0);
 		/* Old driver would do a msleep(100) here */
+		state->config->stream_control(&state->frontend, 0);
+		state->mpeg_enabled = 0;
 	default:
 		return;
 	}
@@ -382,10 +384,9 @@ static int cx24120_message_send(struct cx24120_state *state,
 {
 	int ficus;
 
-	if (state->mpeg_enabled) {
-		/* Disable mpeg out on certain commands */
+	/* If controlling stream, turn if off whilst tuning */
+	if (state->config->stream_control && state->mpeg_enabled)
 		cx24120_check_cmd(state, cmd->id);
-	}
 
 	cx24120_writereg(state, CX24120_REG_CMD_START, cmd->id);
 	cx24120_writeregs(state, CX24120_REG_CMD_ARGS, &cmd->arg[0],
@@ -464,7 +465,6 @@ static int cx24120_msg_mpeg_output_global_config(struct cx24120_state *state,
 		return ret;
 	}
 
-	state->mpeg_enabled = enable;
 	dev_dbg(&state->i2c->dev, "MPEG output %s\n",
 		enable ? "enabled" : "disabled");
 
@@ -743,11 +743,13 @@ static int cx24120_read_status(struct dvb_frontend *fe, fe_status_t *status)
 		/* Set clock ratios */
 		cx24120_set_clock_ratios(fe);
 
-		/* Old driver would do a msleep(200) here */
-
 		/* Renable mpeg output */
-		if (!state->mpeg_enabled)
+		if (state->config->stream_control && !state->mpeg_enabled) {
+			/* Old driver would do a msleep(200) here */
 			cx24120_msg_mpeg_output_global_config(state, 1);
+			state->config->stream_control(fe, 1);
+			state->mpeg_enabled = 1;
+		}
 
 		state->need_clock_set = 0;
 	}
@@ -1418,8 +1420,17 @@ static int cx24120_init(struct dvb_frontend *fe)
 
 	/* Initialise mpeg outputs */
 	cx24120_writereg(state, 0xeb, 0x0a);
-	if (cx24120_msg_mpeg_output_global_config(state, 0) ||
-	    cx24120_msg_mpeg_output_config(state, 0) ||
+
+	/* Enable global output now if we're not doing stream control */
+	if (!state->config->stream_control)
+		ret = cx24120_msg_mpeg_output_global_config(state, 1);
+	else
+		ret = cx24120_msg_mpeg_output_global_config(state, 0);
+
+	if (ret != 0)
+		return ret;
+
+	if (cx24120_msg_mpeg_output_config(state, 0) ||
 	    cx24120_msg_mpeg_output_config(state, 1) ||
 	    cx24120_msg_mpeg_output_config(state, 2)) {
 		err("Error initialising mpeg output. :(\n");
