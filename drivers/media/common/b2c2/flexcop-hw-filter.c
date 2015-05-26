@@ -218,7 +218,6 @@ int flexcop_pid_feed_control(struct flexcop_device *fc,
 	}
 	return 0;
 }
-EXPORT_SYMBOL(flexcop_pid_feed_control);
 
 void flexcop_hw_filter_init(struct flexcop_device *fc)
 {
@@ -242,3 +241,19 @@ void flexcop_hw_filter_init(struct flexcop_device *fc)
 
 	flexcop_null_filter_ctrl(fc, 1);
 }
+
+void flexcop_stream_reset(struct flexcop_device *fc)
+{
+	struct dvb_demux_feed *feed;
+
+	spin_lock_irq(&fc->demux.lock);
+	list_for_each_entry(feed, &fc->demux.feed_list, list_head) {
+		flexcop_pid_feed_control(fc, feed, 0);
+	}
+
+	list_for_each_entry(feed, &fc->demux.feed_list, list_head) {
+		flexcop_pid_feed_control(fc, feed, 1);
+	}
+	spin_unlock_irq(&fc->demux.lock);
+}
+EXPORT_SYMBOL(flexcop_stream_reset);

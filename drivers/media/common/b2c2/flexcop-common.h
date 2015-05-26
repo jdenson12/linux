@@ -177,6 +177,7 @@ void flexcop_dump_reg(struct flexcop_device *fc,
 int flexcop_pid_feed_control(struct flexcop_device *fc,
 		struct dvb_demux_feed *dvbdmxfeed, int onoff);
 void flexcop_hw_filter_init(struct flexcop_device *fc);
+void flexcop_stream_reset(struct flexcop_device *fc);
 
 void flexcop_smc_ctrl(struct flexcop_device *fc, int onoff);
 
