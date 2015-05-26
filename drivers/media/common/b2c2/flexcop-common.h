@@ -91,6 +91,8 @@ struct flexcop_device {
 	int feedcount;
 	int pid_filtering;
 	int fullts_streaming_state;
+	int use_external_stream_control;
+	int external_stream_started;
 	int skip_6_hw_pid_filter;
 
 	/* bus specific callbacks */
@@ -178,6 +180,7 @@ int flexcop_pid_feed_control(struct flexcop_device *fc,
 		struct dvb_demux_feed *dvbdmxfeed, int onoff);
 void flexcop_hw_filter_init(struct flexcop_device *fc);
 void flexcop_stream_reset(struct flexcop_device *fc);
+void flexcop_external_stream_control(struct flexcop_device *fc, int onoff);
 
 void flexcop_smc_ctrl(struct flexcop_device *fc, int onoff);
 

@@ -171,6 +171,8 @@ static int flexcop_toggle_fullts_streaming(struct flexcop_device *fc, int onoff)
 	return 0;
 }
 
+static void flexcop_stream_control(struct flexcop_device *fc, int onoff);
+
 int flexcop_pid_feed_control(struct flexcop_device *fc,
 		struct dvb_demux_feed *dvbdmxfeed, int onoff)
 {
@@ -206,15 +208,9 @@ int flexcop_pid_feed_control(struct flexcop_device *fc,
 
 	/* if it was the first or last feed request change the stream-status */
 	if (fc->feedcount == onoff) {
-		flexcop_rcv_data_ctrl(fc, onoff);
-		if (fc->stream_control) /* device specific stream control */
-			fc->stream_control(fc, onoff);
-
-		/* feeding stopped -> reset the flexcop filter*/
-		if (onoff == 0) {
-			flexcop_reset_block_300(fc);
-			flexcop_hw_filter_init(fc);
-		}
+		if (!fc->use_external_stream_control ||
+		    fc->external_stream_started)
+			flexcop_stream_control(fc, onoff);
 	}
 	return 0;
 }
@@ -257,3 +253,27 @@ void flexcop_stream_reset(struct flexcop_device *fc)
 	spin_unlock_irq(&fc->demux.lock);
 }
 EXPORT_SYMBOL(flexcop_stream_reset);
+
+void flexcop_stream_control(struct flexcop_device *fc, int onoff)
+{
+	flexcop_rcv_data_ctrl(fc, onoff);
+
+	/* device specific stream control */
+	if (fc->stream_control)
+		fc->stream_control(fc, onoff);
+
+	/* feeding stopped -> reset the flexcop filter*/
+	if (onoff == 0) {
+		flexcop_reset_block_300(fc);
+		flexcop_hw_filter_init(fc);
+	}
+}
+
+void flexcop_external_stream_control(struct flexcop_device *fc, int onoff)
+{
+	fc->external_stream_started = onoff;
+
+	/* only change stream if feed already requested */
+	if (fc->feedcount)
+		flexcop_stream_control(fc, onoff);
+}

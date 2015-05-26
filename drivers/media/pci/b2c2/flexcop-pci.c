@@ -62,6 +62,7 @@ struct flexcop_pci {
 	int count;
 	int count_prev;
 	int stream_problem;
+	int stream_started;
 
 	spinlock_t irq_lock;
 	unsigned long last_irq;
@@ -107,7 +108,7 @@ static void flexcop_pci_irq_check_work(struct work_struct *work)
 		container_of(work, struct flexcop_pci, irq_check_work.work);
 	struct flexcop_device *fc = fc_pci->fc_dev;
 
-	if (fc->feedcount) {
+	if (fc_pci->stream_started) {
 
 		if (fc_pci->count == fc_pci->count_prev) {
 			deb_chk("no IRQ since the last check\n");
@@ -232,6 +233,7 @@ static int flexcop_pci_stream_control(struct flexcop_device *fc, int onoff)
 		flexcop_dma_control_timer_irq(fc, FC_DMA_1, 1);
 		deb_irq("IRQ enabled\n");
 		fc_pci->count_prev = fc_pci->count;
+		fc_pci->stream_started = 1;
 	} else {
 		flexcop_dma_control_timer_irq(fc, FC_DMA_1, 0);
 		deb_irq("IRQ disabled\n");
@@ -239,6 +241,7 @@ static int flexcop_pci_stream_control(struct flexcop_device *fc, int onoff)
 		flexcop_dma_xfer_control(fc, FC_DMA_1,
 			 FC_DMA_SUBADDR_0 | FC_DMA_SUBADDR_1, 0);
 		deb_irq("DMA xfer disabled\n");
+		fc_pci->stream_started = 0;
 	}
 	return 0;
 }
